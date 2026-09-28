@@ -1,0 +1,9 @@
+{
+  "name":"HoopIQ NBA Trivia",
+  "short_name":"HoopIQ",
+  "start_url":"/",
+  "display":"standalone",
+  "background_color":"#070a0f",
+  "theme_color":"#f59e0b",
+  "description":"NBA trivia mini-games, weekly challenges and leaderboards."
+}

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HoopIQ — NBA Trivia</title>
+<meta name="description" content="HoopIQ NBA trivia mini-games, leaderboards and achievements.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#070910;--card:#111726;--card2:#171f31;--text:#f7f8fb;--muted:#98a5ba;--orange:#ff7417;--green:#36d68a;--red:#ff5d73;--line:#28344c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -15%,#263552,transparent 48%),var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+header{position:sticky;top:0;z-index:10;background:#070910e8;backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.nav{max-width:1180px;margin:auto;padding:14px 20px;display:flex;gap:18px;align-items:center;justify-content:space-between}.logo{font-weight:950;font-size:23px}.logo i{color:var(--orange);font-style:normal}.navright{display:flex;gap:9px;align-items:center}.btn{border:0;border-radius:10px;padding:10px 14px;background:#273249;color:#fff;font-weight:850;cursor:pointer}.primary{background:var(--orange);color:#190a01}.ghost{background:transparent;border:1px solid var(--line)}.userpill{color:var(--muted);font-size:12px}
+main{max-width:1180px;margin:auto;padding:30px 20px 70px}.hero{text-align:center;padding:26px 0 35px}.eyebrow{font-size:11px;letter-spacing:2px;font-weight:900;text-transform:uppercase;color:#ff9b5a}.hero h1{font-size:clamp(44px,8vw,82px);line-height:.9;letter-spacing:-5px;margin:12px 0}.hero p{max-width:680px;margin:auto;color:var(--muted)}
+.section{margin-top:22px}.sectionhead{display:flex;justify-content:space-between;align-items:end;margin-bottom:12px}.sectionhead h2{margin:0}.sectionhead span{font-size:12px;color:var(--muted)}
+.games{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.game{min-height:178px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,var(--card2),var(--card));padding:19px;text-align:left;color:#fff;cursor:pointer;transition:.18s}.game:hover{transform:translateY(-3px);border-color:#566783}.icon{font-size:29px}.game h3{margin:12px 0 6px}.game p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}.tag{display:inline-block;margin-top:12px;background:#202b40;color:#b4bfd0;border-radius:99px;padding:5px 8px;font-size:10px;font-weight:900}
+.panel{margin-top:20px;padding:24px;border:1px solid var(--line);border-radius:20px;background:#0f1523}.hidden{display:none}.paneltop{display:flex;justify-content:space-between;gap:12px;align-items:center}.sub{color:var(--muted);font-size:12px}.question{font-size:25px;font-weight:900;margin:26px 0 15px}.answers{display:grid;grid-template-columns:1fr 1fr;gap:11px}.answer{padding:16px;border:1px solid var(--line);border-radius:12px;background:#141d2d;color:white;text-align:left;font-weight:750;cursor:pointer}.answer.correct{border-color:var(--green);background:#36d68a18}.answer.wrong{border-color:var(--red);background:#ff5d7318}.feedback{min-height:24px;margin-top:13px;font-weight:800}.timer{height:7px;background:#202a3d;border-radius:99px;overflow:hidden;margin-top:15px}.timer div{height:100%;background:var(--orange);width:100%;transition:width 1s linear}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.tab{background:#182237;color:#b9c3d4;border:1px solid var(--line);padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:800}.tab.active{background:var(--orange);color:#160a02;border-color:var(--orange)}.board{width:100%;border-collapse:collapse}.board th,.board td{padding:12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.board th{color:var(--muted);font-size:11px;text-transform:uppercase}.badgegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.badge{border:1px solid var(--line);background:#141d2d;border-radius:13px;padding:13px}.badge.locked{opacity:.35}.badge b{display:block;margin:6px 0}.badge small{color:var(--muted)}
+.modal{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:30;padding:20px}.modal.open{display:grid}.modalbox{width:min(450px,100%);background:#111827;border:1px solid var(--line);border-radius:18px;padding:24px}.modalbox h2{margin-top:0}.field{display:grid;gap:6px;margin:11px 0}.field label{font-size:12px;color:var(--muted)}.field input{background:#090f1b;color:white;border:1px solid var(--line);padding:12px;border-radius:9px}.notice{font-size:12px;color:var(--muted);line-height:1.5}.result{text-align:center;padding:20px}.big{font-size:60px;font-weight:950}.footer{text-align:center;color:#65718a;font-size:12px;margin-top:40px}
+@media(max-width:850px){.games{grid-template-columns:1fr 1fr}.badgegrid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.games,.answers{grid-template-columns:1fr}.hero h1{letter-spacing:-3px}.nav .userpill{display:none}.badgegrid{grid-template-columns:1fr}}
+
+.progress{height:10px;background:#18202b;border-radius:999px;overflow:hidden;margin-top:12px}
+.progress span{display:block;height:100%;background:#f59e0b;border-radius:999px;transition:width .3s}
+</style>
+</head>
+<body>
+<header><div class="nav"><div class="logo">HOOP<i>IQ</i> 🏀</div><div class="navright"><span id="userpill" class="userpill">Playing as Guest</span><button id="authBtn" class="btn primary" onclick="openAuth()">Sign Up / Log In</button><button id="ownerBtn" class="btn ghost hidden" onclick="ownerPanel()">Owner</button></div></div></header>
+<main>
+<section class="hero"><div class="eyebrow">NBA trivia • mini-games • leaderboards</div><h1>HOW WELL DO YOU KNOW BALL?</h1><p>Create an account to save your scores, streaks and badges across devices. Play daily and climb the boards.</p></section>
+<section class="section"><div class="sectionhead"><h2>Mini-Games</h2><span>8 modes</span></div>
+<div class="games">
+<button class="game" onclick="quiz()"><div class="icon">⚡</div><h3>Trivia Blitz</h3><p>10 NBA questions with a 15-second shot clock.</p><span class="tag">TRIVIA</span></button>
+<button class="game" onclick="hl()"><div class="icon">📈</div><h3>Stat Showdown</h3><p>Compare players and choose who has the higher stat.</p><span class="tag">STATS</span></button>
+<button class="game" onclick="who()"><div class="icon">🕵️</div><h3>Mystery Hooper</h3><p>Use clues to identify the hidden player.</p><span class="tag">GUESS</span></button>
+<button class="game" onclick="connections()"><div class="icon">🧩</div><h3>Hoop Links</h3><p>Group 12 players into three hidden connections.</p><span class="tag">PUZZLE</span></button>
+<button class="game" onclick="daily()"><div class="icon">📅</div><h3>Daily Drop</h3><p>One daily challenge for everyone to compete on.</p><span class="tag">DAILY</span></button>
+<button class="game" onclick="career()"><div class="icon">🧠</div><h3>Career Path</h3><p>Guess the player from their team history.</p><span class="tag">CAREER</span></button>
+<button class="game" onclick="draft()"><div class="icon">🎯</div><h3>Draft Detective</h3><p>Identify the draft year, pick, or team.</p><span class="tag">DRAFT</span></button>
+<button class="game" onclick="dynasty()"><div class="icon">👑</div><h3>Dynasty Decoder</h3><p>Identify a championship team from clues.</p><span class="tag">CHAMPS</span></button>
+</div></section>
+
+
+<section class="section">
+  <div class="sectionhead"><h2>This Week</h2><span id="weekLabel">Fresh every Monday</span></div>
+  <div class="cards">
+    <div class="stat"><small>Featured game</small><strong id="featuredGame">Trivia Blitz</strong></div>
+    <div class="stat"><small>Weekly challenge</small><strong id="weeklyChallenge">Score 1,000+ points</strong></div>
+    <div class="stat"><small>Next reset</small><strong id="weekCountdown">—</strong></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <p class="sub">Your weekly progress is saved when you play while logged in.</p>
+    <div class="progress"><span id="weekProgress" style="width:0%"></span></div>
+    <div class="sub" id="weekProgressText" style="margin-top:8px">0 / 1000 points</div>
+  </div>
+</section>
+
+<section class="section"><div class="sectionhead"><h2>Leaderboards</h2><span>Saved scores</span></div><div class="panel"><div class="tabs"><button class="tab active" onclick="board('weekly',this)">Weekly</button><button class="tab" onclick="board('daily',this)">Daily</button><button class="tab" onclick="board('alltime',this)">All Time</button></div><div id="board"></div></div></section>
+
+<section class="section"><div class="sectionhead"><h2>Achievements</h2><span>Collect them all</span></div><div id="badges" class="badgegrid"></div></section>
+<section id="panel" class="panel hidden"></section>
+<div class="footer">HoopIQ is an independent fan-made basketball trivia project. Not affiliated with the NBA.</div>
+</main>
+
+<div id="authModal" class="modal"><div class="modalbox"><div class="paneltop"><h2 id="authTitle">Create your account</h2><button class="btn" onclick="closeAuth()">✕</button></div><p class="notice">Accounts let HoopIQ save your progress and put your scores on the public leaderboards.</p><div class="field"><label>Email</label><input id="email" type="email" autocomplete="email"></div><div class="field"><label>Password</label><input id="password" type="password" autocomplete="new-password"></div><div class="field"><label>Username</label><input id="username" maxlength="20" placeholder="YourHoopName"></div><button class="btn primary" style="width:100%" onclick="signup()">Create Account</button><button class="btn" style="width:100%;margin-top:8px" onclick="login()">Log In</button><p id="authMsg" class="notice"></p></div></div>
+
+<script>
+/* Add your Supabase project's URL and anon key here. Never put a service_role key in this file. */
+const SUPABASE_URL="YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY";
+const sb=(SUPABASE_URL.startsWith("http")&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let currentUser=null,currentProfile=null;
+const localKey="hoopiq_guest";
+let local=JSON.parse(localStorage[localKey]||'{"score":0,"games":0,"best":0,"badges":[]}');
+
+function $(x){return document.getElementById(x)}
+function saveLocal(){localStorage[localKey]=JSON.stringify(local); try{renderWeekly()}catch(e){}}
+async function boot(){
+ if(!sb){renderBadges();board('alltime');return}
+ const {data:{session}}=await sb.auth.getSession(); if(session) await setUser(session.user);
+ sb.auth.onAuthStateChange(async(_s,session)=>{if(session)await setUser(session.user);else{currentUser=null;currentProfile=null;renderUser()}});
+ renderBadges();board('alltime')
+}
+async function setUser(u){currentUser=u;const {data:p}=await sb.from("profiles").select("*").eq("id",u.id).single();currentProfile=p;renderUser();renderBadges();board('alltime')}
+function renderUser(){
+ if(currentProfile){$("userpill").textContent="@"+currentProfile.username;$("authBtn").textContent="Log Out";$("authBtn").onclick=logout;if(currentProfile.is_owner)$("ownerBtn").classList.remove("hidden")}
+ else{$("userpill").textContent="Playing as Guest";$("authBtn").textContent="Sign Up / Log In";$("authBtn").onclick=openAuth}
+}
+function openAuth(){$("authModal").classList.add("open");$("authMsg").textContent=""}
+function closeAuth(){$("authModal").classList.remove("open")}
+async function signup(){
+ if(!sb){$("authMsg").textContent="Add your Supabase URL/key in app.js first.";return}
+ const e=$("email").value.trim(),p=$("password").value,u=$("username").value.trim();
+ if(!e||p.length<8||u.length<3){$("authMsg").textContent="Use a valid email, 8+ character password, and 3+ character username.";return}
+ const {data,error}=await sb.auth.signUp({email:e,password:p,options:{data:{username:u}}}); if(error){$("authMsg").textContent=error.message;return}
+ $("authMsg").textContent=data.session?"Account created!":"Check your email to confirm your account."; if(data.session)closeAuth()
+}
+async function login(){if(!sb){$("authMsg").textContent="Add your Supabase URL/key in app.js first.";return}const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});$("authMsg").textContent=error?error.message:"Logged in!";if(!error)closeAuth()}
+async function logout(){if(sb)await sb.auth.signOut()}
+async function record(mode,points,badgeList=[]){ local.weekScore=(local.weekScore||0)+Number(points||0); saveLocal();
+ if(!currentUser){local.score+=points;local.games++;local.best=Math.max(local.best,points);local.badges=[...new Set([...local.badges,...badgeList])];saveLocal();renderBadges();return}
+ await sb.from("game_scores").insert({user_id:currentUser.id,mode,score:points});
+ await sb.rpc("increment_profile_stats",{p_score:points,p_games:1,p_best:points});
+ for(const b of badgeList) await sb.from("user_badges").upsert({user_id:currentUser.id,badge_id:b},{onConflict:"user_id,badge_id"});
+ const {data:p}=await sb.from("profiles").select("*").eq("id",currentUser.id).single();currentProfile=p;renderUser();renderBadges()
+}
+const qs=[
+["Who is the NBA's all-time regular-season scoring leader?","LeBron James",["LeBron James","Kareem Abdul-Jabbar","Karl Malone","Michael Jordan"]],
+["Which team drafted Kobe Bryant in 1996?","Charlotte Hornets",["Charlotte Hornets","Los Angeles Lakers","Philadelphia 76ers","Boston Celtics"]],
+["Who won the 2016 NBA Finals?","Cleveland Cavaliers",["Cleveland Cavaliers","Golden State Warriors","Miami Heat","San Antonio Spurs"]],
+["Who is nicknamed 'The Greek Freak'?","Giannis Antetokounmpo",["Giannis Antetokounmpo","Luka Dončić","Nikola Jokić","Joel Embiid"]],
+["Who scored 100 points in one NBA game?","Wilt Chamberlain",["Wilt Chamberlain","Kobe Bryant","Michael Jordan","Elgin Baylor"]],
+["Who was the first unanimous NBA MVP?","Stephen Curry",["Stephen Curry","LeBron James","Kevin Durant","Michael Jordan"]],
+["Who won the 2023 NBA Finals?","Denver Nuggets",["Denver Nuggets","Miami Heat","Boston Celtics","Golden State Warriors"]],
+["Who has the most career assists?","John Stockton",["John Stockton","Jason Kidd","Steve Nash","Chris Paul"]],
+["Who was Finals MVP in 2014?","Kawhi Leonard",["Kawhi Leonard","Tim Duncan","Tony Parker","LeBron James"]],
+["Who is known for the Dream Shake?","Hakeem Olajuwon",["Hakeem Olajuwon","Patrick Ewing","Tim Duncan","David Robinson"]],
+["Which team won the 2020 NBA championship?","Los Angeles Lakers",["Los Angeles Lakers","Miami Heat","Toronto Raptors","Milwaukee Bucks"]],
+["Who was selected first overall in the 2003 NBA Draft?","LeBron James",["LeBron James","Carmelo Anthony","Chris Bosh","Darko Miličić"]]
+];
+const players=[["LeBron James","👑",["4× NBA champion","All-time regular-season scoring leader","Entered the NBA in 2003"]],["Stephen Curry","🎯",["4× NBA champion","All-time 3-point leader","Drafted in 2009"]],["Michael Jordan","🐐",["6× NBA champion","6× Finals MVP","Drafted in 1984"]],["Shaquille O'Neal","💪",["4× NBA champion","15× All-Star","Drafted in 1992"]],["Tim Duncan","🏆",["5× NBA champion","19 seasons with one franchise","Drafted in 1997"]],["Kevin Durant","☄️",["2× NBA champion","4× scoring champion","Drafted in 2007"]]];
+const stats=[["LeBron James",40474,"Kareem Abdul-Jabbar",38387,"career regular-season points"],["Stephen Curry",4000,"Ray Allen",2973,"career 3-pointers"],["John Stockton",15806,"Jason Kidd",12091,"career assists"],["Michael Jordan",32292,"Kobe Bryant",33643,"career regular-season points"],["Shaquille O'Neal",28296,"Hakeem Olajuwon",26946,"career regular-season points"]];
+const careerData=[["LeBron James",["Cleveland Cavaliers","Miami Heat","Cleveland Cavaliers","Los Angeles Lakers"]],["Kevin Durant",["Seattle SuperSonics","Oklahoma City Thunder","Golden State Warriors","Brooklyn Nets","Phoenix Suns"]],["Shaquille O'Neal",["Orlando Magic","Los Angeles Lakers","Miami Heat","Phoenix Suns","Cleveland Cavaliers","Boston Celtics"]],["Kawhi Leonard",["San Antonio Spurs","Toronto Raptors","Los Angeles Clippers"]]];
+const draftData=[["LeBron James","2003","1","Cleveland Cavaliers"],["Stephen Curry","2009","7","Golden State Warriors"],["Kobe Bryant","1996","13","Charlotte Hornets"],["Michael Jordan","1984","3","Chicago Bulls"],["Tim Duncan","1997","1","San Antonio Spurs"],["Kevin Durant","2007","2","Seattle SuperSonics"]];
+const dynastyData=[["2016 Cleveland Cavaliers",["Ended a 52-year major-sports title drought in Cleveland","Won the Finals 4–3","LeBron James was Finals MVP"]],["2023 Denver Nuggets",["First NBA championship in franchise history","Beat the Miami Heat in the Finals","Nikola Jokić was Finals MVP"]],["2014 San Antonio Spurs",["Won the Finals 4–1","Beat the Miami Heat","Kawhi Leonard was Finals MVP"]],["2020 Los Angeles Lakers",["Won the Finals in the Orlando bubble","Beat the Miami Heat","LeBron James was Finals MVP"]]];
+function show(){ $("panel").classList.remove("hidden");$("panel").scrollIntoView({behavior:"smooth",block:"start"})}
+function shuffle(a){return[...a].sort(()=>Math.random()-.5)}
+async function quiz(){let a=shuffle(qs).slice(0,10),i=0,points=0,streak=0,timer;
+ show();next();function next(){if(i>=a.length){record("trivia_blitz",points,[...(points>=900?["hot_hand"]:[]),...(streak>=5?["five_streak"]:[])]);$("panel").innerHTML=`<div class=result><div class=eyebrow>FINAL BUZZER</div><div class=big>${points}</div><h2>Trivia Blitz complete</h2><button class="btn primary" onclick="quiz()">Play Again</button></div>`;return}
+ clearInterval(timer);let[q,ans,opts]=a[i],left=15;$("panel").innerHTML=`<div class=paneltop><div><div class=sub>TRIVIA BLITZ • ${i+1}/10</div><h2>Stay hot.</h2></div><button class=btn onclick="$('panel').classList.add('hidden')">Exit</button></div><div class=timer><div id=tf></div></div><div class=question>${q}</div><div class=answers>${shuffle(opts).map(x=>`<button class=answer data-x="${x.replaceAll('"','&quot;')}">${x}</button>`).join("")}</div><div class=feedback id=fb></div>`;
+ document.querySelectorAll(".answer").forEach(b=>b.onclick=()=>answer(b));timer=setInterval(()=>{left--;tf.style.width=(left/15*100)+"%";if(left<=0){clearInterval(timer);document.querySelectorAll(".answer").forEach(b=>b.disabled=true);fb.textContent="⏰ Time!";streak=0;setTimeout(()=>{i++;next()},650)}},1000);
+ function answer(b){clearInterval(timer);document.querySelectorAll(".answer").forEach(x=>x.disabled=true);if(b.dataset.x===ans){b.classList.add("correct");points+=100+streak*25;streak++;fb.textContent="🔥 Correct!";}else{b.classList.add("wrong");document.querySelectorAll(".answer").forEach(x=>{if(x.dataset.x===ans)x.classList.add("correct")});streak=0;fb.textContent="❌ "+ans}setTimeout(()=>{i++;next()},700)}}}
+function hl(){let r=0,points=0,streak=0;show();next();function next(){if(r>=8){record("stat_showdown",points,[...(streak>=5?["five_streak"]:[])]);$("panel").innerHTML=`<div class=result><div class=big>${points}</div><h2>Stat Showdown complete</h2><button class="btn primary" onclick="hl()">Play Again</button></div>`;return}let[p1,n1,p2,n2,label]=stats[Math.floor(Math.random()*stats.length)];if(Math.random()>.5)[p1,n1,p2,n2]=[p2,n2,p1,n1];$("panel").innerHTML=`<div class=paneltop><div><div class=sub>STAT SHOWDOWN • ${r+1}/8</div><h2>Who has more?</h2></div></div><div style="display:flex;gap:15px;justify-content:center;margin:25px 0"><div class=stat><b>${p1}</b><strong>${n1.toLocaleString()}</strong><small>${label}</small></div><div class=stat><b>${p2}</b><strong>?</strong><small>${label}</small></div></div><div class=answers><button class=btn onclick="guess('higher')">⬆️ ${p2} is higher</button><button class=btn onclick="guess('lower')">⬇️ ${p2} is lower</button></div><div class=feedback id=fb></div>`;window.guess=g=>{let c=n2>n1?"higher":"lower";if(g===c){points+=100+streak*20;streak++;fb.textContent="🔥 Correct!"}else{streak=0;fb.textContent="❌ "+p2+": "+n2.toLocaleString()}setTimeout(()=>{r++;next()},700)}}}
+function who(){let p=players[Math.floor(Math.random()*players.length)],i=0;show();render();function render(){let clues=p[2].slice(0,i+1);$("panel").innerHTML=`<div class=paneltop><div><div class=sub>MYSTERY HOOPER</div><h2>Who am I?</h2></div></div><div style="font-size:65px;text-align:center;margin:15px">${i>=2?p[1]:"❓"}</div>${clues.map((c,n)=>`<div style="padding:11px;border:1px solid var(--line);border-radius:9px;margin:7px 0;color:#b3bfd0"><b>Clue ${n+1}</b> — ${c}</div>`).join("")}<div style="display:flex;gap:8px;margin-top:15px"><input id=whoInput class="input" style="margin:0;flex:1" placeholder="Player name"><button class="btn primary" onclick="checkWho()">Guess</button></div><div class=feedback id=fb></div>`}window.checkWho=()=>{let g=whoInput.value.trim().toLowerCase();if(g===p[0].toLowerCase()){let pts=(3-i)*100;record("mystery_hooper",pts,[...(i===0?["clutch_guesser"]:[])]);$("panel").innerHTML=`<div class=result><div class=big>+${pts}</div><h2>It was ${p[0]} ${p[1]}</h2><button class="btn primary" onclick="who()">Another</button></div>`}else if(i<2){i++;render();fb.textContent="Not quite. New clue!"}else{fb.textContent="The answer was "+p[0]}}}
+function connections(){const groups=[["Championship Core","LeBron James","Stephen Curry","Klay Thompson","Draymond Green"],["Spurs Legends","Tim Duncan","Tony Parker","Manu Ginóbili","David Robinson"],["Elite Centers","Shaquille O'Neal","Hakeem Olajuwon","Nikola Jokić","Joel Embiid"]];let pool=shuffle(groups.flatMap(g=>g.slice(1))),found=0,mistakes=0;show();render();function render(){$("panel").innerHTML=`<div class=paneltop><div><div class=sub>HOOP LINKS</div><h2>Find the groups</h2><p class=sub>Select four, then submit.</p></div></div><div id=conn class=answers>${pool.map(p=>`<button class=answer data-p="${p}">${p}</button>`).join("")}</div><div class=feedback>Mistakes: ${mistakes}/4</div><button class="btn primary" onclick="submitConn()">Submit Group</button>`;document.querySelectorAll("#conn .answer").forEach(b=>b.onclick=()=>b.classList.toggle("wrong"))}window.submitConn=()=>{let sel=[...document.querySelectorAll("#conn .answer.wrong")].map(x=>x.dataset.p);if(sel.length!==4)return;let g=groups.find(x=>sel.every(p=>x.includes(p)));if(g){found++;pool=pool.filter(p=>!sel.includes(p));if(found===3){record("hoop_links",300,["connection_master"]);$("panel").innerHTML=`<div class=result><div class=big>300</div><h2>Connections cleared 🏀</h2><button class="btn primary" onclick=connections()>Again</button></div>`}else render()}else{mistakes++;render()}}}
+function daily(){let q=qs[(new Date().getDate()+new Date().getMonth())%qs.length];show();$("panel").innerHTML=`<div class=paneltop><div><div class=sub>DAILY DROP</div><h2>Today's challenge</h2></div></div><div class=question>${q[0]}</div><div class=answers>${q[2].map(x=>`<button class=answer onclick="dailyAnswer(this,'${q[1].replaceAll("'","\\\\'")}')">${x}</button>`).join("")}</div><div class=feedback id=fb></div>`;window.dailyAnswer=(b,a)=>{document.querySelectorAll(".answer").forEach(x=>x.disabled=true);if(b.textContent===a){b.classList.add("correct");record("daily_drop",250,["daily_grinder"]);fb.textContent="🔥 Daily cleared!"}else{b.classList.add("wrong");fb.textContent="The answer was "+a}}}
+function career(){let p=careerData[Math.floor(Math.random()*careerData.length)];show();$("panel").innerHTML=`<div class=paneltop><div><div class=sub>CAREER PATH</div><h2>Who played for these teams?</h2></div></div><div class=question>${p[1].join(" → ")}</div><div class=answers>${shuffle(careerData.map(x=>x[0])).map(x=>`<button class=answer onclick="careerAnswer(this,'${p[0]}')">${x}</button>`).join("")}</div><div class=feedback id=fb></div>`}window.careerAnswer=(b,a)=>{document.querySelectorAll(".answer").forEach(x=>x.disabled=true);if(b.textContent===a){b.classList.add("correct");record("career_path",200,["pathfinder"]);fb.textContent="🔥 Correct!"}else{b.classList.add("wrong");fb.textContent="It was "+a}}
+function draft(){let p=draftData[Math.floor(Math.random()*draftData.length)];show();$("panel").innerHTML=`<div class=paneltop><div><div class=sub>DRAFT DETECTIVE</div><h2>Identify the player</h2></div></div><div class=question>Drafted #${p[2]} overall in ${p[1]} by the ${p[3]}.</div><div class=answers>${shuffle(draftData.map(x=>x[0])).map(x=>`<button class=answer onclick="draftAnswer(this,'${p[0]}')">${x}</button>`).join("")}</div><div class=feedback id=fb></div>`}window.draftAnswer=(b,a)=>{document.querySelectorAll(".answer").forEach(x=>x.disabled=true);if(b.textContent===a){b.classList.add("correct");record("draft_detective",200,["draft_room"]);fb.textContent="🎯 Nailed it!"}else{b.classList.add("wrong");fb.textContent="It was "+a}}
+function dynasty(){let p=dynastyData[Math.floor(Math.random()*dynastyData.length)];show();$("panel").innerHTML=`<div class=paneltop><div><div class=sub>DYNASTY DECODER</div><h2>Name the champion</h2></div></div>${p[1].map((c,i)=>`<div style="padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;color:#b7c1d0">Clue ${i+1}: ${c}</div>`).join("")}<div class=answers style="margin-top:14px">${shuffle(dynastyData.map(x=>x[0])).map(x=>`<button class=answer onclick="dynastyAnswer(this,'${p[0]}')">${x}</button>`).join("")}</div><div class=feedback id=fb></div>`}window.dynastyAnswer=(b,a)=>{document.querySelectorAll(".answer").forEach(x=>x.disabled=true);if(b.textContent===a){b.classList.add("correct");record("dynasty_decoder",200,["championship_sleuth"]);fb.textContent="👑 Correct!"}else{b.classList.add("wrong");fb.textContent="It was "+a}}
+async function board(period,button){if(button){document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));button.classList.add("active")}const el=$("board");if(!sb){el.innerHTML=`<p class=sub>Connect Supabase to enable public leaderboards.</p><table class=board><tr><th>#</th><th>Player</th><th>Score</th></tr><tr><td>—</td><td>Demo leaderboard</td><td>—</td></tr></table>`;return}let q=sb.from("leaderboard_scores").select("*").eq("period",period).order("score",{ascending:false}).limit(25);let {data,error}=await q;if(error){el.textContent=error.message;return}el.innerHTML=`<table class=board><tr><th>#</th><th>Player</th><th>Score</th></tr>${(data||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.username}</td><td>${x.score.toLocaleString()}</td></tr>`).join("")||"<tr><td colspan=3>No scores yet.</td></tr>"}</table>`}
+const BADGES=[["first_bucket","🏀","First Bucket","Finish your first game"],["five_streak","🔥","Heat Check","Get a 5-answer streak"],["hot_hand","☄️","Hot Hand","Score 900+ in Trivia Blitz"],["daily_grinder","📅","Daily Grinder","Complete the daily challenge"],["clutch_guesser","🧠","Clutch Guesser","Solve Mystery Hooper from clue 1"],["connection_master","🧩","Connection Master","Clear Hoop Links"],["pathfinder","🗺️","Pathfinder","Complete Career Path"],["draft_room","🎯","Draft Room","Beat Draft Detective"],["championship_sleuth","👑","Championship Sleuth","Solve Dynasty Decoder"]]
+async function renderBadges(){let unlocked=currentProfile?null:local.badges; if(currentUser&&sb){let {data}=await sb.from("user_badges").select("badge_id").eq("user_id",currentUser.id);unlocked=(data||[]).map(x=>x.badge_id)}$("badges").innerHTML=BADGES.map(b=>`<div class="badge ${unlocked&&unlocked.includes(b[0])?"":"locked"}"><div style="font-size:27px">${b[1]}</div><b>${b[2]}</b><small>${b[3]}</small></div>`).join("")}
+
+const WEEKLY_ROTATIONS = [
+  ["Trivia Blitz","Weekly Scoring Sprint",1000],
+  ["Stat Showdown","Win 5 rounds",500],
+  ["Mystery Hooper","Solve 3 players",300],
+  ["Hoop Links","Clear one puzzle",300],
+  ["Career Path","Get 3 paths right",600],
+  ["Draft Detective","Get 3 drafts right",600],
+  ["Dynasty Decoder","Solve 3 champions",600]
+];
+
+function weekKey(d=new Date()){
+  const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=x.getUTCDay()||7; x.setUTCDate(x.getUTCDate()+4-day);
+  const y=x.getUTCFullYear(), start=new Date(Date.UTC(y,0,1));
+  const w=Math.ceil((((x-start)/86400000)+1)/7);
+  return `${y}-W${String(w).padStart(2,"0")}`;
+}
+function renderWeekly(){
+  const key=weekKey(), n=parseInt(key.slice(-2),10);
+  const item=WEEKLY_ROTATIONS[(n-1)%WEEKLY_ROTATIONS.length];
+  $("weekLabel").textContent=key;
+  $("featuredGame").textContent=item[0];
+  $("weeklyChallenge").textContent=item[1];
+  const now=new Date(), next=new Date(now);
+  const day=next.getDay()||7; next.setDate(next.getDate()+(8-day)); next.setHours(0,0,0,0);
+  const ms=next-now, hrs=Math.floor(ms/3600000), mins=Math.floor((ms%3600000)/60000);
+  $("weekCountdown").textContent=`${hrs}h ${mins}m`;
+  let score=0;
+  try{score=JSON.parse(localStorage.getItem(localKey)||"{}").weekScore||0}catch(e){}
+  const pct=Math.min(100,Math.round(score/item[2]*100));
+  $("weekProgress").style.width=pct+"%";
+  $("weekProgressText").textContent=`${score.toLocaleString()} / ${item[2].toLocaleString()} points`;
+}
+setInterval(renderWeekly,60000);
+
+async function ownerPanel(){if(!currentProfile?.is_owner)return;show();$("panel").innerHTML=`<div class=paneltop><div><div class=sub>PRIVATE</div><h2>Owner Command Center</h2></div></div><div class=cards><div class=stat><small>Total users</small><strong id=users>…</strong></div><div class=stat><small>Total games</small><strong id=plays>…</strong></div></div><p class=sub>Owner-only controls are enforced by Supabase Row Level Security. Add admin tools here later for questions, badges, featured challenges and moderation.</p><button class="btn primary" onclick="loadOwner()">Refresh stats</button>`;loadOwner()}
+async function loadOwner(){if(!sb)return;let {count:users}=await sb.from("profiles").select("*",{count:"exact",head:true});let {count:plays}=await sb.from("game_scores").select("*",{count:"exact",head:true});$("users").textContent=users??0;$("plays").textContent=plays??0}
+boot();
+</script>
+</body></html>
